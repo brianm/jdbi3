@@ -1,15 +1,12 @@
 package org.jdbi.jdbi3;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import static org.fest.assertions.Assertions.assertThat;
@@ -22,7 +19,7 @@ public class JDBITest
     @Before
     public void setUp() throws Exception
     {
-        ds = JdbcConnectionPool.create("jdbc:h2:mem:", "", "");
+        ds = JdbcConnectionPool.create("jdbc:h2:mem:JDBITest", "", "");
         jdbi = new JDBI(ds);
         jdbi.withHandle(h -> h.execute("create table something (id int primary key, name varchar)"));
     }

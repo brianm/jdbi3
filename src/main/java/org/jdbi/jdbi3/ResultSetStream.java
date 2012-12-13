@@ -4,6 +4,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.Block;
 import java.util.stream.Spliterator;
 import java.util.stream.Streams;
@@ -36,46 +37,31 @@ public class ResultSetStream implements Spliterator<ResultSetRow>
     {
         return new Iterator<ResultSetRow>()
         {
-            private boolean closed = false;
-            private boolean hasNext = false;
-            private boolean alreadyAdvanced = false;
+            private boolean advanced = false;
+            private boolean next = false;
 
             @Override
             public boolean hasNext()
             {
-                if (closed) {
-                    return false;
+                if (advanced) {
+                    return next;
                 }
-
-                if (alreadyAdvanced) {
-                    return hasNext;
-                }
-
-                hasNext = safeNext();
-
-                if (hasNext) {
-                    alreadyAdvanced = true;
-                }
-                else {
-                    close();
-                }
-
-                return hasNext;
-            }
-
-            private boolean safeNext()
-            {
                 try {
-                    return results.next();
+                    advanced = true;
+                    next = results.next();
+
+                    if (next == false) {
+                        close();
+                    }
+
+                    return next;
                 }
                 catch (SQLException e) {
                     throw new JDBIException(e);
                 }
             }
-
             public void close()
             {
-                closed = true;
                 try {
                     results.close();
                     stmt.close();
@@ -89,23 +75,12 @@ public class ResultSetStream implements Spliterator<ResultSetRow>
             @Override
             public ResultSetRow next()
             {
-                if (closed) {
-                    throw new IllegalStateException("iterator is closed");
-                }
-
-                if (!hasNext()) {
-                    close();
-                    throw new IllegalStateException("No element to advance to");
-                }
-
-                try {
+                if (hasNext()) {
+                    advanced = false;
                     return new ResultSetRow(results);
                 }
-                finally {
-                    alreadyAdvanced = safeNext();
-                    if (!alreadyAdvanced) {
-                        close();
-                    }
+                else {
+                    throw new NoSuchElementException();
                 }
             }
 
