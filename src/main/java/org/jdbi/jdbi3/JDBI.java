@@ -2,7 +2,6 @@ package org.jdbi.jdbi3;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
-import java.util.function.Block;
 import java.util.function.Function;
 
 public class JDBI

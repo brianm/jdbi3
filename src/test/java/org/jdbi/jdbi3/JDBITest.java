@@ -6,8 +6,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.fest.assertions.Assertions.assertThat;
 
@@ -45,7 +45,7 @@ public class JDBITest
 
             return h.query("select id, name from something")
                     .map(rs -> new Something(rs.getInt(1), rs.getString(2)))
-                    .into(new HashSet<Something>());
+                    .collect(Collectors.<Something>toSet());
         });
 
         assertThat(things).isEqualTo(ImmutableSet.of(new Something(1, "Brian"),
