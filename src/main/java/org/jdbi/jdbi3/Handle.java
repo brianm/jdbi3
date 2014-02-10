@@ -1,10 +1,11 @@
 package org.jdbi.jdbi3;
 
+import com.google.common.collect.AbstractIterator;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Stream;
@@ -26,54 +27,36 @@ public class Handle implements AutoCloseable
     }
 
 
-    public Stream<ResultSetRow> query(String sql, Object... args)
+    public Stream<ResultSetRow> query(String sql)
     {
         try
         {
             PreparedStatement stmt = connection.prepareStatement(sql);
-            for (int i = 0; i < args.length; i++) {
-                stmt.setObject(i + 1, args[i]);
-            }
             final ResultSet rs = stmt.executeQuery();
-            Iterator<ResultSetRow> itty = new Iterator<ResultSetRow>()
+
+            Spliterator<ResultSetRow> split = Spliterators.spliteratorUnknownSize(new AbstractIterator<ResultSetRow>()
             {
-
-                private boolean advanced = false;
-                private boolean next = false;
-
                 @Override
-                public boolean hasNext()
+                protected ResultSetRow computeNext()
                 {
-                    if (advanced) {
-                        return next;
-                    }
-                    else
+                    try
                     {
-                        advanced = true;
-                        try
-                        {
-                            next = rs.next();
-                            return next;
+                        if (rs.next()) {
+                            return new ResultSetRow(rs);
                         }
-                        catch (SQLException e)
+                        else
                         {
-                            throw new UnsupportedOperationException("Not Yet Implemented!");
+                            rs.close();
+                            return this.endOfData();
                         }
                     }
-                }
+                    catch (SQLException e)
+                    {
+                        throw new JDBIException(e);
+                    }
 
-                @Override
-                public ResultSetRow next()
-                {
-                    if (!hasNext()) {
-                        throw new IllegalStateException("nothing to traverse to!");
-                    }
-                    advanced = false;
-                    return new ResultSetRow(rs);
                 }
-            };
-            Spliterator<ResultSetRow> split = Spliterators.spliteratorUnknownSize(itty,
-                                                                                  Spliterator.NONNULL | Spliterator.ORDERED);
+            }, Spliterator.ORDERED);
             return StreamSupport.stream(split, false);
         }
         catch (SQLException e)
