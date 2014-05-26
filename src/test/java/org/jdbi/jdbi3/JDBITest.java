@@ -1,6 +1,7 @@
 package org.jdbi.jdbi3;
 
 import com.google.common.collect.ImmutableSet;
+import org.jdbi.JDBI;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -9,8 +10,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.jdbi.jdbi3.JDBI.decompose;
-import static org.jdbi.jdbi3.JDBI.extract;
+import static org.jdbi.JDBI.decompose;
+import static org.jdbi.JDBI.extract;
 
 public class JDBITest
 {

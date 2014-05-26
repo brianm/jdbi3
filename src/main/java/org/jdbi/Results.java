@@ -1,4 +1,4 @@
-package org.jdbi.jdbi3;
+package org.jdbi;
 
 import com.google.common.collect.AbstractIterator;
 
@@ -33,7 +33,7 @@ public class Results
                 }
                 catch (SQLException e)
                 {
-                    throw new JDBIException(e);
+                    throw new UncheckedSQLException(e);
                 }
             }
         };

@@ -1,4 +1,4 @@
-package org.jdbi.jdbi3;
+package org.jdbi;
 
 import java.util.Comparator;
 import java.util.Spliterators;

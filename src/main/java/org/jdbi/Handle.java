@@ -1,4 +1,4 @@
-package org.jdbi.jdbi3;
+package org.jdbi;
 
 import com.google.common.collect.AbstractIterator;
 
@@ -52,7 +52,7 @@ public class Handle implements AutoCloseable
                     }
                     catch (SQLException e)
                     {
-                        throw new JDBIException(e);
+                        throw new UncheckedSQLException(e);
                     }
 
                 }
@@ -61,7 +61,7 @@ public class Handle implements AutoCloseable
         }
         catch (SQLException e)
         {
-            throw new JDBIException(e);
+            throw new UncheckedSQLException(e);
         }
     }
 
@@ -82,7 +82,7 @@ public class Handle implements AutoCloseable
         }
         catch (SQLException e)
         {
-            throw new JDBIException(e);
+            throw new UncheckedSQLException(e);
         }
     }
 }

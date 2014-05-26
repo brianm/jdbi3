@@ -1,11 +1,9 @@
-package org.jdbi.jdbi3;
+package org.jdbi;
 
 import com.fasterxml.classmate.MemberResolver;
 import com.fasterxml.classmate.ResolvedType;
 import com.fasterxml.classmate.ResolvedTypeWithMembers;
 import com.fasterxml.classmate.TypeResolver;
-import com.fasterxml.classmate.members.RawMethod;
-import com.fasterxml.classmate.members.ResolvedMember;
 import com.fasterxml.classmate.members.ResolvedMethod;
 import com.google.common.collect.Iterables;
 
@@ -35,7 +33,7 @@ public class JDBI
         }
         catch (SQLException e)
         {
-            throw new JDBIException(e);
+            throw new UncheckedSQLException(e);
         }
     }
 
@@ -50,7 +48,7 @@ public class JDBI
         }
         catch (SQLException e)
         {
-            throw new JDBIException(e);
+            throw new UncheckedSQLException(e);
         }
     }
 

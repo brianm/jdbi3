@@ -1,4 +1,4 @@
-package org.jdbi.jdbi3;
+package org.jdbi;
 
 public interface Mappy2<ResultType, A, B>
 {

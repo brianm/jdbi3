@@ -1,4 +1,4 @@
-package org.jdbi.jdbi3;
+package org.jdbi;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -18,7 +18,7 @@ public class ResultSetRow
             return rs.getInt(index);
         }
         catch (SQLException e) {
-            throw new JDBIException(e);
+            throw new UncheckedSQLException(e);
         }
     }
 
@@ -28,7 +28,7 @@ public class ResultSetRow
             return rs.getString(index);
         }
         catch (SQLException e) {
-            throw new JDBIException(e);
+            throw new UncheckedSQLException(e);
         }
     }
 }

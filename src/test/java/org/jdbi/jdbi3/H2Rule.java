@@ -1,6 +1,7 @@
 package org.jdbi.jdbi3;
 
 import org.h2.jdbcx.JdbcConnectionPool;
+import org.jdbi.JDBI;
 import org.junit.rules.ExternalResource;
 
 import java.util.ArrayList;
