@@ -1,46 +1,41 @@
 package org.jdbi.jdbi3;
 
 import com.google.common.collect.ImmutableSet;
-import org.h2.jdbcx.JdbcConnectionPool;
-import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.fest.assertions.Assertions.assertThat;
+import static org.jdbi.jdbi3.JDBI.decompose;
+import static org.jdbi.jdbi3.JDBI.extract;
 
 public class JDBITest
 {
-    private JdbcConnectionPool ds;
+
+    @Rule
+    public H2Rule h2 = new H2Rule().withFixture("create table something (id int, name varchar)");
+
     private JDBI jdbi;
 
     @Before
     public void setUp() throws Exception
     {
-        ds = JdbcConnectionPool.create("jdbc:h2:mem:" + UUID.randomUUID(), "", "");
-        jdbi = new JDBI(ds);
-        jdbi.withHandle(h -> h.execute("create table something (id int primary key, name varchar)"));
-    }
-
-    @After
-    public void tearDown() throws Exception
-    {
-        ds.dispose();
+        this.jdbi = h2.getJdbi();
     }
 
     @Test
     public void testInsert() throws Exception
     {
-        jdbi.withHandle(h -> h.execute("insert into something (id, name) values (?, ?)", 1, "Brian"));
+        jdbi.execute(h -> h.execute("insert into something (id, name) values (?, ?)", 1, "Brian"));
     }
 
     @Test
     public void testExample() throws Exception
     {
-        Set<Something> things = jdbi.withHandle(h -> {
+        Set<Something> things = jdbi.returning(h -> {
             h.execute("insert into something (id, name) values (?, ?)", 1, "Brian");
             h.execute("insert into something (id, name) values (?, ?)", 2, "Steven");
 
@@ -56,7 +51,7 @@ public class JDBITest
     @Test
     public void testExample2() throws Exception
     {
-        Set<Integer> things = jdbi.withHandle(h -> {
+        Set<Integer> things = jdbi.returning(h -> {
             h.execute("insert into something (id, name) values (?, ?)", 1, "Brian");
             h.execute("insert into something (id, name) values (?, ?)", 2, "Steven");
 
@@ -71,12 +66,12 @@ public class JDBITest
     @Test
     public void testExample3() throws Exception
     {
-        Set<Something> things = jdbi.withHandle(h -> {
+        Set<Something> things = jdbi.returning(h -> {
             h.execute("insert into something (id, name) values (?, ?)", 1, "Brian");
             h.execute("insert into something (id, name) values (?, ?)", 2, "Steven");
 
             return h.query("select id, name from something")
-                    .map(JDBI.extract((Integer id, String name) -> new Something(id, name)))
+                    .map(decompose((Integer id, String name) -> new Something(id, name)))
                     .collect(Collectors.toSet());
         });
 
@@ -86,12 +81,12 @@ public class JDBITest
     @Test
     public void testExample4() throws Exception
     {
-        Set<Something> things = jdbi.withHandle(h -> {
+        Set<Something> things = jdbi.returning(h -> {
             h.execute("insert into something (id, name) values (?, ?)", 1, "Brian");
             h.execute("insert into something (id, name) values (?, ?)", 2, "Steven");
 
             return h.query("select id, name from something")
-                    .map(JDBI.extract(Something::new))
+                    .map(decompose(Something::new))
                     .collect(Collectors.toSet());
         });
 
@@ -106,12 +101,12 @@ public class JDBITest
     @Test
     public void testExample5() throws Exception
     {
-        Set<Integer> things = jdbi.withHandle(h -> {
+        Set<Integer> things = jdbi.returning(h -> {
             h.execute("insert into something (id, name) values (?, ?)", 1, "Brian");
             h.execute("insert into something (id, name) values (?, ?)", 2, "Steven");
 
             return h.query("select id from something")
-                    .map(JDBI.extract1(JDBITest::succ))
+                    .map(extract(JDBITest::succ))
                     .map(it -> {
                         System.out.println(it);
                         return it;

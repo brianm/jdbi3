@@ -76,9 +76,13 @@
         <dependency>
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
-          <version>15.0</version>
+          <version>16.0.1</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.fasterxml</groupId>
+            <artifactId>classmate</artifactId>
+            <version>1.0.0</version>
+        </dependency>
         <dependency>
           <groupId>org.easytesting</groupId>
           <artifactId>fest-assert</artifactId>
