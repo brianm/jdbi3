@@ -1,5 +1,7 @@
 package org.jdbi;
 
+import com.google.common.collect.AbstractIterator;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -19,15 +21,63 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
-public class UncheckedResultSet implements ResultSet
+import static java.util.Spliterator.NONNULL;
+import static java.util.Spliterator.ORDERED;
+
+class UncheckedResultSet implements ResultSet
 {
     private final ResultSet rs;
+    private final List<Consumer<SQLException>> handlers = new ArrayList<>();
 
     public UncheckedResultSet(ResultSet rs) {
         this.rs = rs;
+    }
+
+
+    public UncheckedResultSet onException(Consumer<SQLException> handler) {
+        handlers.add(handler);
+        return this;
+    }
+
+    public UncheckedResultSet onException(Runnable handler) {
+        handlers.add((_e) -> handler.run());
+        return this;
+    }
+
+    public Stream<UncheckedResultSet> stream() {
+        Iterator<UncheckedResultSet> itty = new AbstractIterator<UncheckedResultSet>()
+        {
+            @Override
+            protected UncheckedResultSet computeNext()
+            {
+                try
+                {
+                    if (rs.next()) {
+                        return new ResultSetRow(rs);
+                    }
+                    else {
+                        return this.endOfData();
+                    }
+                }
+                catch (SQLException e)
+                {
+                    throw new UncheckedSQLException(e);
+                }
+            }
+        };
+        Spliterator<UncheckedResultSet> split =  Spliterators.spliteratorUnknownSize(itty, ORDERED | NONNULL);
+        return StreamSupport.stream(split, false);
     }
 
     @Override

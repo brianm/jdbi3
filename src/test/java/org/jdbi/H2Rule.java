@@ -1,19 +1,25 @@
-package org.jdbi.jdbi3;
+package org.jdbi;
 
+import com.google.common.collect.ImmutableList;
 import org.h2.jdbcx.JdbcConnectionPool;
-import org.jdbi.JDBI;
 import org.junit.rules.ExternalResource;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
+import static org.fest.assertions.Assertions.assertThat;
 
 public class H2Rule extends ExternalResource
 {
     private final List<String> fixtures;
     private JdbcConnectionPool ds;
-    private JDBI jdbi;
 
     public H2Rule(List<String> fixtures) {
         this.fixtures = fixtures;
@@ -27,12 +33,15 @@ public class H2Rule extends ExternalResource
     protected void before() throws Throwable
     {
         ds = JdbcConnectionPool.create("jdbc:h2:mem:" + UUID.randomUUID(), "", "");
-        jdbi = new JDBI(ds);
-        jdbi.execute(h -> {
+        try (Connection c = ds.getConnection())
+        {
             for (String fixture : fixtures) {
-                h.execute(fixture);
+                try (PreparedStatement ps = c.prepareStatement(fixture))
+                {
+                    ps.execute();
+                }
             }
-        });
+        }
     }
 
     @Override
@@ -45,14 +54,6 @@ public class H2Rule extends ExternalResource
     {
         return ds;
     }
-
-    public JDBI getJdbi()
-    {
-        return jdbi;
-    }
-
-
-
 
     public H2Rule withFixture(final String s)
     {

@@ -1,34 +1,92 @@
 package org.jdbi;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
-public class ResultSetRow
+/**
+ * UncheckedResultSet which prevents changing position
+ */
+class ResultSetRow extends UncheckedResultSet
 {
-    private final ResultSet rs;
-
-    public ResultSetRow(ResultSet rs) {
-
-        this.rs = rs;
+    ResultSetRow(final ResultSet rs)
+    {
+        super(rs);
     }
 
-    public int getInt(int index)
+    @Override
+    public boolean next()
     {
-        try {
-            return rs.getInt(index);
-        }
-        catch (SQLException e) {
-            throw new UncheckedSQLException(e);
-        }
+        throw new UnsupportedOperationException("Not Supported");
     }
 
-    public String getString(int index)
+    @Override
+    public void close()
     {
-        try {
-            return rs.getString(index);
-        }
-        catch (SQLException e) {
-            throw new UncheckedSQLException(e);
-        }
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+    @Override
+    public void beforeFirst()
+    {
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+    @Override
+    public void afterLast()
+    {
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+    @Override
+    public boolean first()
+    {
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+    @Override
+    public boolean last()
+    {
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+    @Override
+    public boolean absolute(final int row)
+    {
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+    @Override
+    public boolean relative(final int rows)
+    {
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+    @Override
+    public boolean previous()
+    {
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+    @Override
+    public void setFetchDirection(final int direction)
+    {
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+    @Override
+    public void insertRow()
+    {
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+    @Override
+    public void moveToInsertRow()
+    {
+        throw new UnsupportedOperationException("Not Supported");
+    }
+
+    @Override
+    public void moveToCurrentRow()
+    {
+        throw new UnsupportedOperationException("Not Supported");
     }
 }

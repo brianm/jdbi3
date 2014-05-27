@@ -1,4 +1,4 @@
-package org.jdbi.jdbi3;
+package org.jdbi;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
