@@ -1,6 +1,7 @@
 package org.jdbi;
 
 import com.google.common.collect.AbstractIterator;
+import com.google.common.collect.Lists;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -38,31 +39,67 @@ import static java.util.Spliterator.ORDERED;
 class UncheckedResultSet implements ResultSet
 {
     private final ResultSet rs;
-    private final List<Consumer<SQLException>> handlers = new ArrayList<>();
+    private final List<Consumer<SQLException>> exceptionHandlers = new ArrayList<>();
+    private final List<SqlCloser> finalizers = new ArrayList<>();
 
-    public UncheckedResultSet(ResultSet rs) {
+    public UncheckedResultSet(ResultSet rs)
+    {
         this.rs = rs;
     }
 
 
-    public UncheckedResultSet onException(Consumer<SQLException> handler) {
-        handlers.add(handler);
+    public UncheckedResultSet onException(Consumer<SQLException> handler)
+    {
+        exceptionHandlers.add(handler);
         return this;
     }
 
-    public UncheckedResultSet onException(Runnable handler) {
-        handlers.add((_e) -> handler.run());
+    public UncheckedResultSet whenFinished(SqlCloser closer)
+    {
+        this.finalizers.add(closer);
         return this;
     }
 
-    public Stream<UncheckedResultSet> stream() {
+    public UncheckedResultSet onException(Runnable handler)
+    {
+        exceptionHandlers.add((_e) -> handler.run());
+        return this;
+    }
+
+    private void exeption(SQLException e)
+    {
+        List<Consumer<SQLException>> ex_hs = Lists.reverse(exceptionHandlers);
+        for (Consumer<SQLException> h : ex_hs) {
+            try {
+                h.accept(e);
+            }
+            catch (Exception e2) {
+                // TODO log this at least
+            }
+        }
+    }
+
+    private void finished(SQLException e)
+    {
+        List<SqlCloser> fs = Lists.reverse(finalizers);
+        for (SqlCloser f : finalizers) {
+            try {
+                f.close();
+            }
+            catch (SQLException e1) {
+                // TODO log this at least
+            }
+        }
+    }
+
+    public Stream<UncheckedResultSet> stream()
+    {
         Iterator<UncheckedResultSet> itty = new AbstractIterator<UncheckedResultSet>()
         {
             @Override
             protected UncheckedResultSet computeNext()
             {
-                try
-                {
+                try {
                     if (rs.next()) {
                         return new ResultSetRow(rs);
                     }
@@ -70,26 +107,25 @@ class UncheckedResultSet implements ResultSet
                         return this.endOfData();
                     }
                 }
-                catch (SQLException e)
-                {
+                catch (SQLException e) {
                     throw new UncheckedSQLException(e);
                 }
             }
         };
-        Spliterator<UncheckedResultSet> split =  Spliterators.spliteratorUnknownSize(itty, ORDERED | NONNULL);
+        Spliterator<UncheckedResultSet> split = Spliterators.spliteratorUnknownSize(itty, ORDERED | NONNULL);
         return StreamSupport.stream(split, false);
     }
 
     @Override
     public boolean next()
     {
-        try { return rs.next(); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { return rs.next(); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void close()
     {
-        try { rs.close(); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.close(); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
@@ -335,13 +371,19 @@ class UncheckedResultSet implements ResultSet
     @Override
     public Reader getCharacterStream(final int columnIndex)
     {
-        try { return rs.getCharacterStream(columnIndex); } catch (SQLException e) { throw new UncheckedSQLException(e); }
+        try { return rs.getCharacterStream(columnIndex); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public Reader getCharacterStream(final String columnLabel)
     {
-        try { return rs.getCharacterStream(columnLabel); } catch (SQLException e) { throw new UncheckedSQLException(e); }
+        try { return rs.getCharacterStream(columnLabel); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
@@ -383,25 +425,25 @@ class UncheckedResultSet implements ResultSet
     @Override
     public void beforeFirst()
     {
-        try { rs.beforeFirst(); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.beforeFirst(); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void afterLast()
     {
-        try { rs.afterLast(); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.afterLast(); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public boolean first()
     {
-        try { return rs.first(); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { return rs.first(); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public boolean last()
     {
-        try { return rs.last(); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { return rs.last(); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
@@ -413,25 +455,25 @@ class UncheckedResultSet implements ResultSet
     @Override
     public boolean absolute(final int row)
     {
-        try { return rs.absolute(row); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { return rs.absolute(row); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public boolean relative(final int rows)
     {
-        try { return rs.relative(rows); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { return rs.relative(rows); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public boolean previous()
     {
-        try { return rs.previous(); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { return rs.previous(); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void setFetchDirection(final int direction)
     {
-        try { rs.setFetchDirection(direction); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.setFetchDirection(direction); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
@@ -569,19 +611,28 @@ class UncheckedResultSet implements ResultSet
     @Override
     public void updateAsciiStream(final int columnIndex, final InputStream x, final int length)
     {
-        try { rs.updateAsciiStream(columnIndex, x, length); } catch (SQLException e) { throw new UncheckedSQLException(e); }
+        try { rs.updateAsciiStream(columnIndex, x, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateBinaryStream(final int columnIndex, final InputStream x, final int length)
     {
-        try { rs.updateBinaryStream(columnIndex, x, length); } catch (SQLException e) { throw new UncheckedSQLException(e); }
+        try { rs.updateBinaryStream(columnIndex, x, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateCharacterStream(final int columnIndex, final Reader x, final int length)
     {
-        try { rs.updateCharacterStream(columnIndex, x, length); } catch (SQLException e) { throw new UncheckedSQLException(e); }
+        try { rs.updateCharacterStream(columnIndex, x, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
@@ -683,25 +734,37 @@ class UncheckedResultSet implements ResultSet
     @Override
     public void updateAsciiStream(final String columnLabel, final InputStream x, final int length)
     {
-        try { rs.updateAsciiStream(columnLabel, x, length); } catch (SQLException e) { throw new UncheckedSQLException(e); }
+        try { rs.updateAsciiStream(columnLabel, x, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateBinaryStream(final String columnLabel, final InputStream x, final int length)
     {
-        try { rs.updateBinaryStream(columnLabel, x, length); } catch (SQLException e) { throw new UncheckedSQLException(e); }
+        try { rs.updateBinaryStream(columnLabel, x, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateCharacterStream(final String columnLabel, final Reader reader, final int length)
     {
-        try { rs.updateCharacterStream(columnLabel, reader, length); } catch (SQLException e) { throw new UncheckedSQLException(e); }
+        try { rs.updateCharacterStream(columnLabel, reader, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateObject(final String columnLabel, final Object x, final int scaleOrLength)
     {
-        try { rs.updateObject(columnLabel, x, scaleOrLength); } catch (SQLException e) { throw new UncheckedSQLException(e); }
+        try { rs.updateObject(columnLabel, x, scaleOrLength); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
@@ -743,13 +806,13 @@ class UncheckedResultSet implements ResultSet
     @Override
     public void moveToInsertRow()
     {
-        try { rs.moveToInsertRow(); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.moveToInsertRow(); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void moveToCurrentRow()
     {
-        try { rs.moveToCurrentRow(); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.moveToCurrentRow(); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
@@ -1001,13 +1064,13 @@ class UncheckedResultSet implements ResultSet
     @Override
     public void updateSQLXML(final int columnIndex, final SQLXML xmlObject)
     {
-        try { rs.updateSQLXML(columnIndex, xmlObject); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateSQLXML(columnIndex, xmlObject); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void updateSQLXML(final String columnLabel, final SQLXML xmlObject)
     {
-        try { rs.updateSQLXML(columnLabel, xmlObject); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateSQLXML(columnLabel, xmlObject); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
@@ -1025,181 +1088,235 @@ class UncheckedResultSet implements ResultSet
     @Override
     public Reader getNCharacterStream(final int columnIndex)
     {
-        try { return rs.getNCharacterStream(columnIndex); } catch (SQLException e) { throw new UncheckedSQLException(e); }
+        try { return rs.getNCharacterStream(columnIndex); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public Reader getNCharacterStream(final String columnLabel)
     {
-        try { return rs.getNCharacterStream(columnLabel); } catch (SQLException e) { throw new UncheckedSQLException(e); }
+        try { return rs.getNCharacterStream(columnLabel); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateNCharacterStream(final int columnIndex, final Reader x, final long length)
     {
-        try { rs.updateNCharacterStream(columnIndex, x); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateNCharacterStream(columnIndex, x); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateNCharacterStream(final String columnLabel, final Reader reader, final long length)
     {
-        try { rs.updateNCharacterStream(columnLabel, reader, length); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateNCharacterStream(columnLabel, reader, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateAsciiStream(final int columnIndex, final InputStream x, final long length)
     {
-        try { rs.updateAsciiStream(columnIndex, x, length); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateAsciiStream(columnIndex, x, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateBinaryStream(final int columnIndex, final InputStream x, final long length)
     {
-        try { rs.updateBinaryStream(columnIndex, x, length); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateBinaryStream(columnIndex, x, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateCharacterStream(final int columnIndex, final Reader x, final long length)
     {
-        try { rs.updateCharacterStream(columnIndex, x, length); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateCharacterStream(columnIndex, x, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateAsciiStream(final String columnLabel, final InputStream x, final long length)
     {
-        try { rs.updateAsciiStream(columnLabel, x, length); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateAsciiStream(columnLabel, x, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateBinaryStream(final String columnLabel, final InputStream x, final long length)
     {
-        try { rs.updateBinaryStream(columnLabel, x); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateBinaryStream(columnLabel, x); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void updateCharacterStream(final String columnLabel, final Reader reader, final long length)
     {
-        try { rs.updateCharacterStream(columnLabel, reader, length); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateCharacterStream(columnLabel, reader, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateBlob(final int columnIndex, final InputStream inputStream, final long length)
     {
-        try { rs.updateBlob(columnIndex, inputStream, length); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateBlob(columnIndex, inputStream, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateBlob(final String columnLabel, final InputStream inputStream, final long length)
     {
-        try { rs.updateBlob(columnLabel, inputStream, length); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateBlob(columnLabel, inputStream, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateClob(final int columnIndex, final Reader reader, final long length)
     {
-        try { rs.updateClob(columnIndex, reader, length); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateClob(columnIndex, reader, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateClob(final String columnLabel, final Reader reader, final long length)
     {
-        try { rs.updateClob(columnLabel, reader, length); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateClob(columnLabel, reader, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateNClob(final int columnIndex, final Reader reader, final long length)
     {
-        try { rs.updateNClob(columnIndex, reader, length); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateNClob(columnIndex, reader, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateNClob(final String columnLabel, final Reader reader, final long length)
     {
-        try { rs.updateNClob(columnLabel, reader, length); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateNClob(columnLabel, reader, length); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateNCharacterStream(final int columnIndex, final Reader x)
     {
-        try { rs.updateNCharacterStream(columnIndex, x); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateNCharacterStream(columnIndex, x); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateNCharacterStream(final String columnLabel, final Reader reader)
     {
-        try { rs.updateNCharacterStream(columnLabel, reader); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateNCharacterStream(columnLabel, reader); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateAsciiStream(final int columnIndex, final InputStream x)
     {
-        try { rs.updateAsciiStream(columnIndex, x); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateAsciiStream(columnIndex, x); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void updateBinaryStream(final int columnIndex, final InputStream x)
     {
-        try { rs.updateBinaryStream(columnIndex, x); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateBinaryStream(columnIndex, x); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void updateCharacterStream(final int columnIndex, final Reader x)
     {
-        try { rs.updateCharacterStream(columnIndex, x); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateCharacterStream(columnIndex, x); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void updateAsciiStream(final String columnLabel, final InputStream x)
     {
-        try { rs.updateAsciiStream(columnLabel, x); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateAsciiStream(columnLabel, x); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void updateBinaryStream(final String columnLabel, final InputStream x)
     {
-        try { rs.updateBinaryStream(columnLabel, x); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateBinaryStream(columnLabel, x); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void updateCharacterStream(final String columnLabel, final Reader reader)
     {
-        try { rs.updateCharacterStream(columnLabel, reader); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateCharacterStream(columnLabel, reader); }
+        catch (SQLException e) {
+            throw new UncheckedSQLException(e);
+        }
     }
 
     @Override
     public void updateBlob(final int columnIndex, final InputStream inputStream)
     {
-        try { rs.updateBlob(columnIndex, inputStream); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateBlob(columnIndex, inputStream); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void updateBlob(final String columnLabel, final InputStream inputStream)
     {
-        try { rs.updateBlob(columnLabel, inputStream); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateBlob(columnLabel, inputStream); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void updateClob(final int columnIndex, final Reader reader)
     {
-        try { rs.updateClob(columnIndex, reader); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateClob(columnIndex, reader); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void updateClob(final String columnLabel, final Reader reader)
     {
-        try { rs.updateClob(columnLabel, reader); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateClob(columnLabel, reader); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void updateNClob(final int columnIndex, final Reader reader)
     {
-        try { rs.updateNClob(columnIndex, reader); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateNClob(columnIndex, reader); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
     public void updateNClob(final String columnLabel, final Reader reader)
     {
-        try { rs.updateNClob(columnLabel, reader); } catch (SQLException e ) { throw new UncheckedSQLException(e); }
+        try { rs.updateNClob(columnLabel, reader); } catch (SQLException e) { throw new UncheckedSQLException(e); }
     }
 
     @Override
