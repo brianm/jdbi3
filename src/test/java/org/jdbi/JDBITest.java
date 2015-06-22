@@ -21,7 +21,7 @@ public class JDBITest
     public void testWithHandleFunctionForm() throws Exception
     {
         JDBI db = new JDBI(h2);
-        List<String> names = db.open(h -> h.select("select name from something order by id")
+        List<String> names = db.open(h -> h.query("select name from something order by id")
                                            .stream()
                                            .map((r) -> r.getString(1))
                                            .collect(Collectors.toList()));
@@ -35,7 +35,7 @@ public class JDBITest
         Set<String> names = Sets.newHashSet("Brian", "Steven");
         db.run(h -> {
             assertThat(names).containsOnly("Brian", "Steven");
-            h.select("select name from something order by id")
+            h.query("select name from something order by id")
              .stream()
              .map((r) -> r.getString(1))
              .forEach(names::remove);

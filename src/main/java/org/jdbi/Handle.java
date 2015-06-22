@@ -15,8 +15,9 @@ public class Handle
         conn = c;
     }
 
-    public Query select(final String query)
+    public Query query(final Object query)
     {
-        return new Query(query, conn);
+        String q = query.toString();
+        return new Query(q, conn);
     }
 }
